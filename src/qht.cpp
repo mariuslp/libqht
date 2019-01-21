@@ -1,5 +1,5 @@
 #include "qht.h"
-
+/*
 template <class T> QHTFilter<T>::QHTFilter(
 	const uint64_t memory_size,
 	const size_t n_n_buckets,
@@ -14,4 +14,4 @@ template <class T> QHTFilter<T>::QHTFilter(
 
 template <class T> void QHTFilter<T>::Reset() {
 	qht.assign(n_cells * n_buckets * fingerprint_size, 0);
-}
+} */

@@ -3,10 +3,10 @@
 #include "qht.h"
 
 int main() {
-	QHTFilter bla = QHTFilter<Element>(65000, 1, 1);
+	QHTFilter<uint8_t> bla = QHTFilter<uint8_t>(65000, 1, 1);
 	bla.Reset();
 
-	bla.Insert<Element>(Element(42));
-	std::cout << bla.Lookup<Element>(Element(43)) << std::endl;
+	bla.Insert(42);
+	std::cout << bla.Lookup(42) << std::endl;
 }
 
