@@ -22,10 +22,10 @@ template <class T> bool QQHTDFilter<T>::Insert(const T& e) {
          * @param e
          * @return bool : true if e is detected as a duplicate, false otherwise 
 	 */
-        auto detected = Lookup(e);
+        auto detected = this->Lookup(e);
 
-        size_t address = Hash1(e) % n_cells;
-        auto fingerprint = Fingerprin(e);
+        size_t address = Hash1(e) % this->n_cells;
+        auto fingerprint = this->Fingerprint(e);
 
         InsertFingerprintInLastBucket(address, fingerprint);
 
@@ -43,11 +43,11 @@ template <class T> bool QQHTDFilter<T>::InsertFingerprintInLastBucket(const uint
          *
          * @returns bool true
          */
-        for(size_t i = 0; i < n_buckets - 1; ++i) {
-                InsertFingerprintInBucket(address, i, GetFingerprintFromBucket(address, i + 1));
+        for(size_t i = 0; i < this->n_buckets - 1; ++i) {
+                this->InsertFingerprintInBucket(address, i, this->GetFingerprintFromBucket(address, i + 1));
         }
 
-        InsertFingerprintInBucket(address, n_buckets - 1, fingerprint);
+        this->InsertFingerprintInBucket(address, this->n_buckets - 1, fingerprint);
 
         return true;
 }
@@ -63,12 +63,12 @@ template <class T> bool QQHTDFilter<T>::Delete(const T& e) {
 
         bool element_found = false;
 
-        size_t address = Hash1(e) % n_cells;
-        auto fingerprint = Fingerprint(e);
+        size_t address = Hash1(e) % this->n_cells;
+        auto fingerprint = this->Fingerprint(e);
 
         size_t i = 0;
-        while(! element_found && i < n_buckets - 1) {
-                if(GetFingerprintFromBucket(address, i) == fingerprint) {
+        while(! element_found && i < this->n_buckets) {
+                if(this->GetFingerprintFromBucket(address, i) == fingerprint) {
                         element_found = true;
                         // InsertFingerprintInBucket(address, i, 0);
                 } else {
@@ -80,11 +80,11 @@ template <class T> bool QQHTDFilter<T>::Delete(const T& e) {
                 return false;
         }
 
-        for(; i < n_buckets - 1; ++i) {
-                InsertElementInBucket(address, i, GetFingerprintFromBucket(address, i + 1));
+        for(; i < this->n_buckets - 1; ++i) {
+                this->InsertFingerprintInBucket(address, i, this->GetFingerprintFromBucket(address, i + 1));
         }
 
-        InsertElementInBucket(address, n_buckets - 1, 0);
+        this->InsertFingerprintInBucket(address, this->n_buckets - 1, 0);
 
         return true;
 }
