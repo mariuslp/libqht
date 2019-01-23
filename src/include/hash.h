@@ -1,9 +1,8 @@
 #pragma once
 
-#include <vector>
 #include <boost/functional/hash.hpp>
 
-#include "types.h"
+#include "utils.h"
 
 template<class T> HashValue Hash1(T t) {
 	/** Computes a hash for an element of type T 

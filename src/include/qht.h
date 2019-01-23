@@ -3,9 +3,8 @@
 #include <cassert>
 #include <random>
 
-#include "fastmath.h"
 #include "hash.h"
-#include "types.h"
+#include "utils.h"
 
 template <class T> struct QHTFilter	 {
 
