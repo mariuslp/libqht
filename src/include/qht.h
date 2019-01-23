@@ -6,7 +6,7 @@
 #include "hash.h"
 #include "utils.h"
 
-template <class T> struct QHTFilter	 {
+template <class T> struct QHTFilter {
 
 protected:
 	size_t array_size;
