@@ -89,7 +89,7 @@ template <class T> bool QHTFilter<T>::Lookup(const T& e) {
 	 * @returns boolean
 	 */
 
-	size_t address = Address(e);
+	auto address = Address(e);
 	auto fingerprint = Fingerprint(e);
 
 	return InCell(address, fingerprint);
@@ -109,7 +109,7 @@ template <class T> bool QHTFilter<T>::Insert(const T& e) {
 		return detected;
 	}
 
-	size_t address = Address(e);
+	auto address = Address(e);
 	auto fingerprint = Fingerprint(e);
 
 	// First try inserting in empty bucket
@@ -139,7 +139,7 @@ template <class T> bool QHTFilter<T>::Delete(const T& e) {
 		 * @returns bool: true if the element, or a false duplicate, is found (and deleted),
 		 *                false if no such element is found.
 		 */
-		size_t address = Address(e);
+		auto address = Address(e);
 		auto fingerprint = Fingerprint(e);
 
 		size_t i = 0;
