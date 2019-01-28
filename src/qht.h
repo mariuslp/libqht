@@ -20,6 +20,7 @@ protected:
 	std::vector<bool> qht;
 
 	uint64_t Fingerprint(const T& e);
+	size_t Address(const T& e);
 	bool InCell(const uint64_t address, const uint64_t fingerprint) const;
 	bool InsertEmpty(const uint64_t address, const uint64_t fingerprint);
 	bool InsertFingerprintInBucket(const uint64_t address, const size_t bucket_number, const uint64_t fingerprint);
@@ -29,7 +30,7 @@ public:
 	QHTFilter(const uint64_t memory_size, const size_t n_n_buckets, const size_t n_fingerprint_size);
 	bool Lookup(const T& e);
 	bool Insert(const T& e);
-        bool Delete(const T& e);
+	bool Delete(const T& e);
 	void Reset();
 };
 
@@ -42,8 +43,18 @@ template <class T> QHTFilter<T>::QHTFilter(
 	n_cells = memory_size / (n_buckets * fingerprint_size);
 	assert(n_cells > 0);
 	assert(fingerprint_size < 64); // Fingerprints are stored in uint64_t
-        Reset();
+	Reset();
 }
+
+template <class T> size_t QHTFilter<T>::Address(const T& e) {
+	/** Get the address of an element
+	 *
+	 * @param T e the element
+	 * @return size_t address the address of the element in the filter
+	 */
+	return Hash1(e) % n_cells;
+}
+
 
 template <class T> uint64_t QHTFilter<T>::Fingerprint(const T& e) {
 	/** Get the fingerprint of an element
@@ -53,14 +64,14 @@ template <class T> uint64_t QHTFilter<T>::Fingerprint(const T& e) {
 	 * This configuration makes sure every fingerprint is equiprobable
 	 * (at the cost of slight computing overhead)
 	 *
-	 * @param Element e
+	 * @param T e the element
 	 * @return int fingerprint of e
 	 */
 
 	// Note: the hash must be independent from Hash1 which already provides `address`
 	HashValue hash = Hash2(e);
 
-        uint64_t fingerprint = hash & ((1 << fingerprint_size) - 1);
+	uint64_t fingerprint = hash & ((1 << fingerprint_size) - 1);
 	//uint8_t fingerprint = static_cast<uint8_t>(hash % pow2(fingerprint_size));
 
 	int adder = 0;
@@ -68,7 +79,7 @@ template <class T> uint64_t QHTFilter<T>::Fingerprint(const T& e) {
 	while(fingerprint == 0) {
 		boost::hash_combine(hash, hash + ++adder);  // adder avoids potential infinite loops with fixed points (such as 11754104648456392440)
 		fingerprint = hash & ((1 << fingerprint_size) - 1);
-                //fingerprint = static_cast<uint8_t>(hash % pow2(fingerprint_size));
+		//fingerprint = static_cast<uint8_t>(hash % pow2(fingerprint_size));
 	}
 
 	return fingerprint;
@@ -77,11 +88,11 @@ template <class T> uint64_t QHTFilter<T>::Fingerprint(const T& e) {
 template <class T> bool QHTFilter<T>::Lookup(const T& e) {
 
 	/** Returns true if the element e is detected inside the filter
-     * @param e
+	 * @param e
 	 * @returns boolean
 	 */
 
-	size_t address = Hash1(e) % n_cells;
+	size_t address = Address(e);
 	auto fingerprint = Fingerprint(e);
 
 	return InCell(address, fingerprint);
@@ -95,13 +106,13 @@ template <class T> bool QHTFilter<T>::Insert(const T& e) {
 	 */
 
 	auto detected = Lookup(e);
-        
+
 	// Does not insert if the element is already present in the filter
 	if(detected) {
 		return detected;
 	}
 
-	size_t address = Hash1(e) % n_cells;
+	size_t address = Address(e);
 	auto fingerprint = Fingerprint(e);
 
 	// First try inserting in empty bucket
@@ -116,41 +127,41 @@ template <class T> bool QHTFilter<T>::Insert(const T& e) {
 }
 
 template <class T> bool QHTFilter<T>::Delete(const T& e) {
-        /**
-         * Deletes an element e from the QHT.
-         * This function deletes one element in the QHT that has the same hash and the same fingerprint as e
-         * and returns true.
-         * If no such element is found, returns false
-         *
-         * If e is present several times in the filter (which is possible in QQHTD), only one copy will be deleted
-         *
-         * However, this function cannot distinguish between e and a false duplicate of e
-         * (same address and hash, but not e). This is unavoidable and can subsequently lead to false negatives.
-         *
-         * @param e: the element to remove from the filter
-         * @returns bool: true if the element, or a false duplicate, is found (and deleted),
-         *                false if no such element is found.
-         */
-        size_t address = Hash1(e) % n_cells;
-        auto fingerprint = Fingerprint(e);
+		/**
+		 * Deletes an element e from the QHT.
+		 * This function deletes one element in the QHT that has the same hash and the same fingerprint as e
+		 * and returns true.
+		 * If no such element is found, returns false
+		 *
+		 * If e is present several times in the filter (which is possible in QQHTD), only one copy will be deleted
+		 *
+		 * However, this function cannot distinguish between e and a false duplicate of e
+		 * (same address and hash, but not e). This is unavoidable and can subsequently lead to false negatives.
+		 *
+		 * @param e: the element to remove from the filter
+		 * @returns bool: true if the element, or a false duplicate, is found (and deleted),
+		 *                false if no such element is found.
+		 */
+		size_t address = Address(e);
+		auto fingerprint = Fingerprint(e);
 
-        size_t i = 0;
-        int bucket_number = -1;
- 
-        // Locate bucket index in which e may be stored
-        while(bucket_number == -1 and i < n_buckets) {
-		if(GetFingerprintFromBucket(address, i) == fingerprint) {
-			bucket_number = i;
+		size_t i = 0;
+		int bucket_number = -1;
+
+		// Locate bucket index in which e may be stored
+		while(bucket_number == -1 and i < n_buckets) {
+			if(GetFingerprintFromBucket(address, i) == fingerprint) {
+				bucket_number = i;
+			}
 		}
-	}
 
-        if(bucket_number == -1) {
-                return false;
-        }
+		if(bucket_number == -1) {
+			return false;
+		}
 
-        InsertFingerprintInBucket(address, bucket_number, 0);
+		InsertFingerprintInBucket(address, bucket_number, 0);
 
-        return true;
+		return true;
 }
 
 template <class T> uint64_t QHTFilter<T>::GetFingerprintFromBucket(const uint64_t address, const size_t bucket_number) const {

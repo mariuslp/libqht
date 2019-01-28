@@ -7,16 +7,16 @@ int main() {
 	QHTFilter<uint8_t> bla = QHTFilter<uint8_t>(65000, 1, 1);
 
 	bla.Insert(42);
-        bla.Insert(43);
-        bla.Delete(42);
+	bla.Insert(43);
+	bla.Delete(42);
 	std::cout << bla.Lookup(42) << std::endl;
 	std::cout << bla.Lookup(43) << std::endl;
 	
-        QQHTDFilter<uint8_t> blabla = QQHTDFilter<uint8_t>(65000, 1, 1);
+	QQHTDFilter<uint8_t> blabla = QQHTDFilter<uint8_t>(65000, 1, 1);
 
 	blabla.Insert(42);
-        blabla.Insert(43);
-        blabla.Delete(42);
+	blabla.Insert(43);
+	blabla.Delete(42);
 	std::cout << blabla.Lookup(42) << std::endl;
 	std::cout << blabla.Lookup(43) << std::endl;
 }
