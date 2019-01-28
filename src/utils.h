@@ -2,6 +2,9 @@
 
 #include <cstdint>
 
+/** Hash value */
+typedef std::size_t HashValue;
+
 /** Fast integer power of 2 */
 inline constexpr std::uint64_t pow2 (std::uint64_t i)
 {
