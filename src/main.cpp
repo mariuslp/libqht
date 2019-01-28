@@ -20,4 +20,3 @@ int main() {
 	std::cout << blabla.Lookup(42) << std::endl;
 	std::cout << blabla.Lookup(43) << std::endl;
 }
-

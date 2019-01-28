@@ -4,7 +4,6 @@
 #include <random>
 
 #include "hash.h"
-#include "utils.h"
 
 template <class T> struct QHTFilter {
 
@@ -72,14 +71,12 @@ template <class T> uint64_t QHTFilter<T>::Fingerprint(const T& e) {
 	HashValue hash = Hash2(e);
 
 	uint64_t fingerprint = hash & ((1 << fingerprint_size) - 1);
-	//uint8_t fingerprint = static_cast<uint8_t>(hash % pow2(fingerprint_size));
 
 	int adder = 0;
 	// TODO std::hash(hash + ++adder) seems to have poor statistical properties as this loop is run a bit too often to my taste
 	while(fingerprint == 0) {
 		boost::hash_combine(hash, hash + ++adder);  // adder avoids potential infinite loops with fixed points (such as 11754104648456392440)
 		fingerprint = hash & ((1 << fingerprint_size) - 1);
-		//fingerprint = static_cast<uint8_t>(hash % pow2(fingerprint_size));
 	}
 
 	return fingerprint;

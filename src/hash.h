@@ -1,8 +1,10 @@
 #pragma once
 
 #include <boost/functional/hash.hpp>
+#include <cstdint>
 
-#include "utils.h"
+/** Syntactic sugar for hash values */
+typedef std::size_t HashValue;
 
 template<class T> HashValue Hash1(T t) {
 	/** Computes a hash for an element of type T 
