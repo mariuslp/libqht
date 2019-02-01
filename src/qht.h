@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <random>
+#include <boost/functional/hash.hpp>
 
 #include "hash.h"
 
@@ -108,7 +109,7 @@ template <class T> bool QHTFilter<T>::Insert(const T& e) {
 	// Run from all buckets, left to right. Stops at element, or first empty cell.
 	// If it stops at empty cell the element is not present.
 	bool detected = false;
-	auto bucket_number = 0;
+	size_t bucket_number = 0;
 	auto current_fingerprint = GetFingerprintFromBucket(address, bucket_number);
 
 	while(!detected && current_fingerprint != 0 && bucket_number < n_buckets) {
@@ -149,7 +150,7 @@ template <class T> bool QHTFilter<T>::Stream(const T& e) {
 	// Run from all buckets, left to right. Stops at element, or first empty cell (empty cells contain 0).
 	// If it stops at empty cell the element is not present.
 	bool detected = false;
-	auto bucket_number = 0;
+	size_t bucket_number = 0;
 	auto current_fingerprint = GetFingerprintFromBucket(address, bucket_number);
 
 	while(!detected && current_fingerprint != 0 && bucket_number < n_buckets) {
@@ -175,7 +176,6 @@ template <class T> bool QHTFilter<T>::Stream(const T& e) {
 	InsertFingerprintInBucket(address, bucket_selector(rng), fingerprint);
 
 	return false;
-
 }
 
 template <class T> bool QHTFilter<T>::Delete(const T& e) {

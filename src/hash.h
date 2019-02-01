@@ -1,17 +1,19 @@
 #pragma once
 
-#include <boost/functional/hash.hpp>
 #include <cstdint>
 
+#include "xxhash.h"
+#include "xxhash.hpp"
+
 /** Syntactic sugar for hash values */
-typedef std::size_t HashValue;
+typedef xxh::hash_t<64> HashValue;
 
 template<class T> HashValue Hash1(T t) {
 	/** Computes a hash for an element of type T 
 	 *   @param t: object to be hashed
 	 *   @returns A HashValue which is likely to be different for different inputs
 	 */
-	return std::hash<T>{}(t);
+	return xxh::xxhash<64>(t);
 }
 
 template<class T> HashValue Hash2(T t) {
@@ -20,8 +22,7 @@ template<class T> HashValue Hash2(T t) {
 	 * @returns A HashValue (more or less) independent of Hash1(t)
 	 */
 	size_t seed = 0x1234567890abcdef;
-	boost::hash_combine(seed, Hash1(t));
 
-	return seed;
+	return xxh::xxhash<64>(t, seed);
 }
 
