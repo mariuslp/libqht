@@ -21,7 +21,6 @@ protected:
 	uint64_t Fingerprint(const T& e);
 	size_t Address(const T& e);
 	bool InCell(const uint64_t address, const uint64_t fingerprint) const;
-	bool InsertEmpty(const uint64_t address, const uint64_t fingerprint);
 	bool InsertFingerprintInBucket(const uint64_t address, const size_t bucket_number, const uint64_t fingerprint);
 	uint64_t GetFingerprintFromBucket(const uint64_t address, const size_t bucket_number) const;
 
@@ -29,6 +28,7 @@ public:
 	QHTFilter(const uint64_t memory_size, const size_t n_n_buckets, const size_t n_fingerprint_size);
 	bool Lookup(const T& e);
 	bool Insert(const T& e);
+	bool Stream(const T& e);
 	bool Delete(const T& e);
 	void Reset();
 };
@@ -99,66 +99,130 @@ template <class T> bool QHTFilter<T>::Insert(const T& e) {
 
 	/** Inserts element e in the filter if not already present
 	 * @param e
-	 * @returns boolean being true if the element was already in the filter
+	 * @returns true
 	 */
-
-	auto detected = Lookup(e);
-
-	// Does not insert if the element is already present in the filter
-	if(detected) {
-		return detected;
-	}
 
 	auto address = Address(e);
 	auto fingerprint = Fingerprint(e);
 
-	// First try inserting in empty bucket
-	if(InsertEmpty(address, fingerprint)) {
-		return detected;
+	// Run from all buckets, left to right. Stops at element, or first empty cell.
+	// If it stops at empty cell the element is not present.
+	bool detected = false;
+	auto bucket_number = 0;
+	auto current_fingerprint = GetFingerprintFromBucket(address, bucket_number);
+
+	while(!detected && current_fingerprint != 0 && bucket_number < n_buckets) {
+		detected = (fingerprint == GetFingerprintFromBucket(address, bucket_number));
+
+		if(!detected) {
+			++bucket_number;
+		}
+	}
+
+	// Do not insert an element already present
+	if(detected) {
+		return true;
+	}
+
+	// Try to insert in empty bucket if possible
+	if(current_fingerprint == 0) {
+		InsertFingerprintInBucket(address, bucket_number, fingerprint);
+		return true;
 	}
 
 	// No empty bucket, inserting in random bucket (erasing previous content)
 	InsertFingerprintInBucket(address, bucket_selector(rng), fingerprint);
 
-	return detected;
+	return true;
+}
+
+template <class T> bool QHTFilter<T>::Stream(const T& e) {
+	/** Inserts element e in the filter if not already present
+	 * Is equivalent to Detect(e) followed by Insert(e), but faster (only one round of hashing)
+	 *
+	 * @param e
+	 * @returns boolean being true if the element was already in the filter, false otherwise
+	 */
+	auto address = Address(e);
+	auto fingerprint = Fingerprint(e);
+
+	// Run from all buckets, left to right. Stops at element, or first empty cell (empty cells contain 0).
+	// If it stops at empty cell the element is not present.
+	bool detected = false;
+	auto bucket_number = 0;
+	auto current_fingerprint = GetFingerprintFromBucket(address, bucket_number);
+
+	while(!detected && current_fingerprint != 0 && bucket_number < n_buckets) {
+		detected = (fingerprint == GetFingerprintFromBucket(address, bucket_number));
+
+		if(!detected) {
+			++bucket_number;
+		}
+	}
+
+	// Do not insert an element already present
+	if(detected) {
+		return true;
+	}
+
+	// Try to insert in empty bucket if possible
+	if(current_fingerprint == 0) {
+		InsertFingerprintInBucket(address, bucket_number, fingerprint);
+		return false;
+	}
+
+	// No empty bucket, inserting in random bucket (erasing previous content)
+	InsertFingerprintInBucket(address, bucket_selector(rng), fingerprint);
+
+	return false;
+
 }
 
 template <class T> bool QHTFilter<T>::Delete(const T& e) {
-		/**
-		 * Deletes an element e from the QHT.
-		 * This function deletes one element in the QHT that has the same hash and the same fingerprint as e
-		 * and returns true.
-		 * If no such element is found, returns false
-		 *
-		 * If e is present several times in the filter (which is possible in QQHTD), only one copy will be deleted
-		 *
-		 * However, this function cannot distinguish between e and a false duplicate of e
-		 * (same address and hash, but not e). This is unavoidable and can subsequently lead to false negatives.
-		 *
-		 * @param e: the element to remove from the filter
-		 * @returns bool: true if the element, or a false duplicate, is found (and deleted),
-		 *                false if no such element is found.
-		 */
-		auto address = Address(e);
-		auto fingerprint = Fingerprint(e);
+	/**
+	 * Deletes an element e from the QHT.
+	 * This function deletes one element in the QHT that has the same hash and the same fingerprint as e
+	 * and returns true.
+	 * If no such element is found, returns false
+	 *
+	 * If e is present several times in the filter (which is possible in QQHTD), only one copy will be deleted
+	 *
+	 * However, this function cannot distinguish between e and a false duplicate of e
+	 * (same address and hash, but not e). This is unavoidable and can subsequently lead to false negatives.
+	 *
+	 * @param e: the element to remove from the filter
+	 * @returns bool: true if the element, or a false duplicate, is found (and deleted),
+	 *                false if no such element is found.
+	 */
+	bool element_found = false;
 
-		size_t i = 0;
-		int bucket_number = -1;
+	auto address = Address(e);
+	auto fingerprint = Fingerprint(e);
 
-		// Locate bucket index in which e may be stored
-		while(bucket_number == -1 and i < n_buckets) {
-			if(GetFingerprintFromBucket(address, i) == fingerprint) {
-				bucket_number = i;
-			}
+	size_t i = 0;
+	while(! element_found && i < n_buckets) {
+		if(GetFingerprintFromBucket(address, i) == fingerprint) {
+			element_found = true;
+		} else {
+			++i;
 		}
+	}
 
-		if(bucket_number == -1) {
-			return false;
-		}
+	if(! element_found) {
+		return false;
+	}
 
-		InsertFingerprintInBucket(address, bucket_number, 0);
+	// Remove the element from the list by shifting the following elements one cell to the left
+	// We must do this because we assume that all empty buckets are filled from lowest indice to highest indice 
+	for(; i < n_buckets - 1; ++i) {
+		InsertFingerprintInBucket(address, i, GetFingerprintFromBucket(address, i + 1));
+	}
 
-		return true;
+	// Re-set the last element of the list to `Empty`. Also covers the case where the e to be removed
+	// is the last element of the list.
+	InsertFingerprintInBucket(address, n_buckets - 1, 0);
+
+	return true;
 }
 
 template <class T> uint64_t QHTFilter<T>::GetFingerprintFromBucket(const uint64_t address, const size_t bucket_number) const {
@@ -230,24 +294,10 @@ template <class T> bool QHTFilter<T>::InCell(const uint64_t address, const uint6
 	return false;
 }
 
-template <class T> bool QHTFilter<T>::InsertEmpty(const uint64_t address, const uint64_t fingerprint) {
-
-	/** Inserts fingerprint in an empty bucket of the cell (address), if such bucket exists
-	 * @param address
-	 * @param fingerprint
-	 * @returns true if element has been implemented, false otherwise
-	 */
-
-	for(size_t i = 0; i < n_buckets; ++i) {
-		if(GetFingerprintFromBucket(address, i) == 0) {
-			InsertFingerprintInBucket(address, i, fingerprint);
-			return true;
-		}
-	}
-
-	return false;
-}
-
 template <class T> void QHTFilter<T>::Reset() {
+	/**
+	 * Re-set all cells to 0 (Empty)
+	 * Also sets the QHT table to its assigned capacity, if not already done.
+	 */
 	qht.assign(n_cells * n_buckets * fingerprint_size, 0);
 }

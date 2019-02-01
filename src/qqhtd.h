@@ -7,7 +7,6 @@ template <class T> struct QQHTDFilter : QHTFilter<T> {
 public:
 	QQHTDFilter(const uint64_t memory_size, const size_t n_n_buckets, const size_t n_fingerprint_size);
 	bool Insert(const T& e);
-	bool Delete(const T& e);
 
 protected:
 	bool InsertFingerprintInLastBucket(const size_t address, const uint64_t fingerprint);
@@ -52,45 +51,6 @@ template <class T> bool QQHTDFilter<T>::InsertFingerprintInLastBucket(const size
 	}
 
 	this->InsertFingerprintInBucket(address, this->n_buckets - 1, fingerprint);
-
-	return true;
-}
-
-template <class T> bool QQHTDFilter<T>::Delete(const T& e) {
-	/**
-	 * Overrides QHT's Delete method.
-	 * Same principle applies
-	 *
-	 * @param T e : the element to be deleted
-	 * @returns bool : true if deleted, false if not found
-	 */
-
-	bool element_found = false;
-
-	auto address = this->Address(e);
-	auto fingerprint = this->Fingerprint(e);
-
-	size_t i = 0;
-	while(! element_found && i < this->n_buckets) {
-		if(this->GetFingerprintFromBucket(address, i) == fingerprint) {
-			element_found = true;
-		} else {
-			++i;
-		}
-	}
-
-	if(! element_found) {
-		return false;
-	}
-
-	// Remove the element from the list by shifting the following elements one cell to the left
-	for(; i < this->n_buckets - 1; ++i) {
-		this->InsertFingerprintInBucket(address, i, this->GetFingerprintFromBucket(address, i + 1));
-	}
-
-	// Re-set the last element of the queue to `Empty`. Also covers the case where the e to be removed
-	// is the last element of the queue.
-	this->InsertFingerprintInBucket(address, this->n_buckets - 1, 0);
 
 	return true;
 }
