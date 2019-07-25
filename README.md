@@ -10,7 +10,7 @@ The current implementation also supports item deletion. Note however that by def
 
 The file src/main.cpp contains examples, we reproduce here a basic use:
 ```
-#include <qht.h>  // Or qqht.h
+#include <qht.h>  // Or qqhtd.h
 
 int main() {
     // Instanciate QHT of 1024 bits, 2 buckets per cell, 1 bit per bucket
