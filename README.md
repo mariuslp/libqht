@@ -1,4 +1,4 @@
-# libQHT
+# libQHT - C++ Quotient Hash Table Implementation
 
 This is an implmentation of QHT and QQHTD, as described in the paper [*"Quotient Hash Tables - Efficiently Detecting Duplicates in Streaming Data"*](https://arxiv.org/abs/1901.04358), published in SAC'19. QHT is a very efficient duplicate detection algorithm.
 
